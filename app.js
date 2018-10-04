@@ -3,13 +3,14 @@ const sqlite3 = require('sqlite3')
 const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 
+
 const db = new sqlite3.Database("buddybase.db")
 
   db.run(`
   CREATE TABLE IF NOT EXISTS accounts(
       accountId INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT,
-      password TEXT,
+      password TEXT
   )
   `)
 
@@ -26,6 +27,8 @@ const db = new sqlite3.Database("buddybase.db")
 
   db.run(`
   CREATE TABLE IF NOT EXISTS friends(
+    friendId INTEGER PRIMARY KEY AUTOINCREMENT,
+    accountId INTEGER
   )
   `)
 
