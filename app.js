@@ -85,7 +85,7 @@ function validateaccounts(accounts){
 //Get all studyStatus
 
 app.get("/studyStatus", function(req, res){
-const query = "SELECT * FROM studyStatus"
+	const query = "SELECT * FROM studyStatus"
     db.all(query, function(errors, studyStatus){
         if(errors){
             res.status(500).end()
@@ -99,61 +99,42 @@ const query = "SELECT * FROM studyStatus"
 
 
 app.get("/friends", function(req, res){
-const accountId = currentUser
-const authorizationHeader = req.get("Authorization")
-const accessToken = authorizationHeader.substr(7)
-let tokenAccountId = null
-
-	try{
-		const payload = jwt.verify(accessToken, jwtSecret)
-		tokenAccountId = payload.accountId
-	}catch(error){
-		res.status(401).end()
-		return
-	}
-
-	if(tokenAccountId != accountId){
-		res.status(401).end()
-		return
-	}
-
-    const query = "SELECT * FROM friends WHERE confirmed == 1"
-        db.all(query, function(errors, friends){
-            if(errors){
-				res.status(500).end()
-                }else{
-					
-				res.status(200).json(friends)
-            }
-        })
-	}) 
+    const query = "SELECT account2 FROM friends WHERE confirmed == 1"
+    db.all(query, function(errors, friends){
+        if(errors){
+			res.status(500).end()
+        }else{
+			res.status(200).json(friends)
+        }
+    })
+}) 
 	
 //Get specific studyStatus
 
-app.get('/studyStatus/:studyId', function(request, response){
-const studyId = parseInt(request.params.studyId)
+app.get('/studyStatus/:studyId', function(req, res){
+	const studyId = parseInt(req.params.studyId)
 	db.get("SELECT * FROM studyStatus WHERE studyId = ?", [studyId], function(error, studyStatus){
 		if(error){
-                response.status(500).end()
-            }else if(!studyStatus){
-                response.status(404).end()
-            }else{
-                response.status(200).json(studyStatus)
+            res.status(500).end()
+        }else if(!studyStatus){
+            res.status(404).end()
+        }else{
+            res.status(200).json(studyStatus)
 		}
 	})
 })
 
 //Get specific account
 
-app.get('/accounts/:username', function(request, response){
-    const username = request.params.username
-        db.get("SELECT id, username FROM accounts WHERE username = ?", [username], function(error, accounts){
-            if(error){
-                response.status(500).end()
-            }else if(!accounts){
-                response.status(404).end()
-            }else{
-                response.status(200).json(accounts)
+app.get('/accounts/:username', function(req, res){
+    const username = req.params.username
+    db.get("SELECT id, username FROM accounts WHERE username = ?", [username], function(error, accounts){
+        if(error){
+            res.status(500).end()
+        }else if(!accounts){
+            res.status(404).end()
+        }else{
+            res.status(200).json(accounts)
         }
     })
 })
@@ -162,64 +143,62 @@ app.get('/accounts/:username', function(request, response){
     
 //Create new account
 
-app.post("/accounts", function(request, response){
+app.post("/accounts", function(req, res){
 
-const accounts = request.body
-const username = request.body.username
-const password = request.body.password
-const saltRounds = 10
-const theHash = bcrypt.hashSync(password, saltRounds)
-const errors = validateaccounts(accounts)
+	const accounts = req.body
+	const username = req.body.username
+	const password = req.body.password
+	const saltRounds = 10
+	const theHash = bcrypt.hashSync(password, saltRounds)
+	const errors = validateaccounts(accounts)
 
 	if(0 < errors.length){
-		response.status(400).json(errors)
+		res.status(400).json(errors)
 		return
 	} 
 
-const query = `
-	INSERT INTO accounts (username, password)
-	VALUES (?, ?)
-	`
-const values = [username, theHash]
+	const query = `
+		INSERT INTO accounts (username, password)
+		VALUES (?, ?)
+		`
+	const values = [username, theHash]
 
 	db.run(query, values, function(error){
 		if(error){
 			if(error.message == "SQLITE_CONSTRAINT: UNIQUE constraint failed: accounts.username"){
-				response.status(400).json(["usernameNotUnique"])
+				res.status(400).json(["usernameNotUnique"])
 			}else{
-				response.status(500).end()
+				res.status(500).end()
 			}
-		}	
-		else{
-			response.setHeader("Location", "/accounts/"+this.lastID)
-			response.status(201).end()
+		}else{
+			res.setHeader("Location", "/accounts/"+this.lastID)
+			res.status(201).end()
 		}
 	})
-
 })
 
 //Sign in
 var currentUser
 
-app.post("/tokens", function(request, response){
-	
-	const grant_type = request.body.grant_type
-	const username = request.body.username
-	const password = request.body.password
+app.post("/tokens", function(req, res){
+
+	const grant_type = req.body.grant_type
+	const username = req.body.username
+	const password = req.body.password
 
 	const query = `SELECT * FROM accounts WHERE username = ?`
 	const values = [username]
 
 	if(grant_type != "password") {
-		response.status(400).json({error: "Unsupported_grant_type"})
+		res.status(400).json({error: "Unsupported_grant_type"})
 		return
 	} 
 
 	db.get(query, values, function(error, accounts){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else if(!accounts){
-			response.status(400).json({error: "invalid_client"})
+			res.status(400).json({error: "invalid_client"})
 		}else{
 			if(bcrypt.compareSync(password, accounts.password)){
 
@@ -227,45 +206,42 @@ app.post("/tokens", function(request, response){
 				const idToken = jwt.sign({sub: accounts.id, preferred_username: accounts.username}, jwtSecret)
 				currentUser = accounts.id
 
-				response.status(200).json({
+				res.status(200).json({
 					access_token: accessToken,
 					token_type: "Bearer",
 					id_token: idToken
-					
 				})
 
 			}else{
-				response.status(400).json({error: "invalid_request"})
+				res.status(400).json({error: "invalid_request"})
 			}
 		}
 	})
-
 })
 
 //Create new studyStatus
 
-app.post("/studyStatus", function(request, response){
+app.post("/studyStatus", function(req, res){
 
-const studyStatus = request.body
-const studyId = request.body.studyId
-const accountId = request.body.accountId
-const message = request.body.message
-const location = request.body.location
-const time = request.body.time
-const authorizationHeader = request.get("Authorization")
-const accessToken = authorizationHeader.substr(7)
-let tokenAccountId = null
+	const studyId = req.body.studyId
+	const accountId = req.body.accountId
+	const message = req.body.message
+	const location = req.body.location
+	const time = req.body.time
+	const authorizationHeader = req.get("Authorization")
+	const accessToken = authorizationHeader.substr(7)
+	let tokenAccountId = null
 
 	try{
 		const payload = jwt.verify(accessToken, jwtSecret)
 		tokenAccountId = payload.accountId
 	}catch(error){
-		response.status(401).end()
+		res.status(401).end()
 		return
 	}
 
 	if(tokenAccountId != accountId){
-		response.status(401).end()
+		res.status(401).end()
 		return
     }
 
@@ -278,27 +254,28 @@ let tokenAccountId = null
 	db.run(query, values, function(error){
 		if(error){
 			if(error.message == "SQLITE_CONSTRAINT: FOREIGN KEY constraint failed"){
-				response.status(400).json(["accountNotFound"]) 
-			} else {
-			response.status(500).end()}
+				res.status(400).json(["accountNotFound"]) 
+			}else {
+				res.status(500).end()
+			}
 		}else{
 			const id = this.lastID
-			response.setHeader("Location", "/studyStatus/"+id)
-			response.status(201).end()
+			res.setHeader("Location", "/studyStatus/"+id)
+			res.status(201).end()
 		}
 	})
-
 })
 
 //Add friend
 
-app.post("/friends/", function(req, res){
+app.post("/friends", function(req, res){
+	const friendId = req.body.friendId
 	const account1 = currentUser
 	const account2 = req.body.accountId
 	const confirmed = 0
 
-	const query = "INSERT INTO Friends (account1, account2, confirmed) VALUES (?,?,?)"
-	const values = [account1, account2, confirmed]
+	const query = "INSERT INTO friends (friendId, account1, account2, confirmed) VALUES (?,?,?,?)"
+	const values = [friendId, account1, account2, confirmed]
 
 	db.run(query, values, function(error){
 		if(error){
@@ -333,17 +310,17 @@ app.post("/joinFriend/", function(req, res){
 
 //Delete studyStatus
 
-app.delete("/studyStatus/:studyId", function(request, response){
-	const studyId = parseInt(request.params.studyId)
+app.delete("/studyStatus/:studyId", function(req, res){
+	const studyId = parseInt(req.params.studyId)
 	db.run("DELETE FROM studyStatus WHERE studyId = ?", [studyId], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
@@ -351,17 +328,17 @@ app.delete("/studyStatus/:studyId", function(request, response){
 
 //Delete friendship
 
-app.delete("/friends/:id", function(req, res){
-	const id = parseInt(req.params.id)
-	db.run("DELETE FROM friends WHERE id = ?", [id], function(error){
+app.delete("/friends/:friendId", function(req, res){
+	const friendId = parseInt(req.params.friendId)
+	db.run("DELETE FROM Friends WHERE friendId = ?", [friendId], function(error){
 		if(error){
 			res.status(500).end()
 		}else {
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
@@ -369,17 +346,17 @@ app.delete("/friends/:id", function(req, res){
 
 //Delete account
 
-app.delete("/accounts/:id", function(request, response){
-	const id = parseInt(request.params.id)
+app.delete("/accounts/:id", function(req, res){
+	const id = parseInt(req.params.id)
 	db.run("DELETE FROM accounts WHERE id = ?", [id], function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 		}else{
 			const numberOfDeletetRows = this.changes
 			if(numberOfDeletetRows == 0){
-				response.status(404).end()
+				res.status(404).end()
 			}else{
-				response.status(204).end()
+				res.status(204).end()
 			}
 		}
 	})
@@ -389,11 +366,11 @@ app.delete("/accounts/:id", function(request, response){
 
 //Update account
 
-app.put("/accounts/:id", function(request, response){
+app.put("/accounts/:id", function(req, res){
 	
-	const id = request.params.id
-	const accounts = request.body
-	const password = request.body.password
+	const id = req.params.id
+	const accounts = req.body
+	const password = req.body.password
 	const saltRounds = 10
 	const theHash = bcrypt.hashSync(password, saltRounds)
 
@@ -401,7 +378,7 @@ app.put("/accounts/:id", function(request, response){
 	const errors = validateaccounts(accounts)
 
 	if(0 < errors.length){
-		response.status(400).json(errors)
+		res.status(400).json(errors)
 		return
 	}
 
@@ -416,10 +393,10 @@ app.put("/accounts/:id", function(request, response){
 	]
 	db.run(query, values, function(error){
 		if(error){
-			response.status(500).end()
+			res.status(500).end()
 			console.log(error.message)
 		}else{
-			response.status(204).end()
+			res.status(204).end()
 		}
 	})
 })
@@ -428,16 +405,15 @@ app.put("/accounts/:id", function(request, response){
 
 //Confirm friendship
 
-app.patch("/friends/:id", function(req, res){
-	const id = parseInt(request.params.id)
-	db.run("UPDATE friends SET confirmed = 1 WHERE id = ? ", [id], function(error){
+app.patch("/friends/:friendId", function(req, res){
+	const friendId = parseInt(req.params.friendId)
+	db.run("UPDATE friends SET confirmed = 1 WHERE friendId = ? ", [friendId], function(error){
 		if(error){
 			res.status(422).end()
 		}else{
-			res.status(201).end()
-			console.log("created")
+			res.status(204).end()
 		}
 	})
 })
 
-app.listen(8080)
+app.listen(6000)
