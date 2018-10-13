@@ -344,8 +344,6 @@ app.delete("/friends/:id", function(req, res){
 	})
 })
 
-//--------- PUT REQUESTS-----------//
-
 //Delete account
 
 app.delete("/accounts/:id", function(request, response){
@@ -363,6 +361,8 @@ app.delete("/accounts/:id", function(request, response){
 		}
 	})
 })
+
+//--------- PUT REQUESTS-----------//
 
 //Update account
 
@@ -399,7 +399,8 @@ app.put("/accounts/:id", function(request, response){
 			response.status(204).end()
 		}
 	})
-
 })
 
-app.listen(6000)
+//Confirm friendship
+
+app.listen(8080)
