@@ -40,7 +40,9 @@ db.run(`
 		friendId INTEGER PRIMARY KEY AUTOINCREMENT,
 		account1 INTEGER,
         account2 INTEGER,
-        confirmed INTEGER
+		confirmed INTEGER,
+		FOREIGN KEY(\`account1\`) REFERENCES \`accounts\`(\`id\`) ON DELETE CASCADE,
+		FOREIGN KEY(\`account2\`) REFERENCES \`accounts\`(\`id\`) ON DELETE CASCADE
 	)
 `)
 
@@ -48,7 +50,9 @@ db.run(`
   CREATE TABLE IF NOT EXISTS joinF (
 		studyId INTEGER PRIMARY KEY AUTOINCREMENT,
 		joinFriends INTEGER,
-        accountId INTEGER
+		accountId INTEGER,
+		FOREIGN KEY(\`accountId\`) REFERENCES \`accounts\`(\`id\`) ON DELETE CASCADE,
+		FOREIGN KEY(\`studyId\`) REFERENCES \`studyStatus\`(\`studyId\`) ON DELETE CASCADE
 	)
 `)
 
