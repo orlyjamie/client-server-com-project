@@ -1,10 +1,12 @@
 const express = require('express')
 const sqlite3 = require('sqlite3')
 const bodyParser = require('body-parser')
-const db = new sqlite3.Database("studyBuddy.db")
-const app = express()
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+
+const db = new sqlite3.Database("studyBuddy.db")
+const app = express()
+
 const jwtSecret = "jberjghbehjberj"
 
 app.use(bodyParser.json())
@@ -283,6 +285,25 @@ let tokenAccountId = null
 		}
 	})
 
+})
+
+//Add friend
+
+app.post("/friends/:username", function(req, res){
+	const account1 = currentUser
+	const account2 = req.params.username
+
+	const query = "INSERT INTO Friends (account1, account2, confirmed) VALUES (?,?,0)"
+	const values = [account1, account2, confirmed]
+
+	db.run(query, values, function(error){
+		if(error){
+			res.status(422).end()
+		} else {
+			res.setHeader("Location", "/friends")
+			res.status(201).end()
+		}
+	})
 })
 
 //--------- DELETE REQUESTS-----------//
