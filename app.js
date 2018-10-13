@@ -94,17 +94,37 @@ const query = "SELECT * FROM studyStatus"
 
 //Get all friends
 
+
 app.get("/friends", function(req, res){
+const accountId = currentUser
+const authorizationHeader = req.get("Authorization")
+const accessToken = authorizationHeader.substr(7)
+let tokenAccountId = null
+
+	try{
+		const payload = jwt.verify(accessToken, jwtSecret)
+		tokenAccountId = payload.accountId
+	}catch(error){
+		res.status(401).end()
+		return
+	}
+
+	if(tokenAccountId != accountId){
+		res.status(401).end()
+		return
+	}
+
     const query = "SELECT * FROM friends WHERE confirmed == 1"
         db.all(query, function(errors, friends){
             if(errors){
-                res.status(500).end()
+				res.status(500).end()
                 }else{
+					
 				res.status(200).json(friends)
             }
         })
-    })
-
+	}) 
+	
 //Get specific studyStatus
 
 app.get('/studyStatus/:studyId', function(request, response){
@@ -176,6 +196,7 @@ const values = [username, theHash]
 })
 
 //Sign in
+var currentUser
 
 app.post("/tokens", function(request, response){
 	
@@ -201,6 +222,7 @@ app.post("/tokens", function(request, response){
 
 				const accessToken = jwt.sign({accountId: accounts.id}, jwtSecret)
 				const idToken = jwt.sign({sub: accounts.id, preferred_username: accounts.username}, jwtSecret)
+				currentUser = accounts.id
 
 				response.status(200).json({
 					access_token: accessToken,
