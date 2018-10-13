@@ -405,6 +405,20 @@ app.put("/accounts/:id", function(request, response){
 	})
 })
 
+//--------- PATCH REQUESTS-----------//
+
 //Confirm friendship
+
+app.patch("/friends/:id", function(req, res){
+	const id = parseInt(request.params.id)
+	db.run("UPDATE friends SET confirmed = 1 WHERE id = ? ", [id], function(error){
+		if(error){
+			res.status(422).end()
+		}else{
+			res.status(201).end()
+			console.log("created")
+		}
+	})
+})
 
 app.listen(8080)
