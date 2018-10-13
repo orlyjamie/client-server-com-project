@@ -49,7 +49,6 @@ db.run(`
 db.run(`
   CREATE TABLE IF NOT EXISTS joinF (
 		studyId INTEGER PRIMARY KEY AUTOINCREMENT,
-		joinFriends INTEGER,
 		accountId INTEGER,
 		FOREIGN KEY(\`accountId\`) REFERENCES \`accounts\`(\`id\`) ON DELETE CASCADE,
 		FOREIGN KEY(\`studyId\`) REFERENCES \`studyStatus\`(\`studyId\`) ON DELETE CASCADE
@@ -293,11 +292,12 @@ let tokenAccountId = null
 
 //Add friend
 
-app.post("/friends/:username", function(req, res){
+app.post("/friends/", function(req, res){
 	const account1 = currentUser
-	const account2 = req.params.username
+	const account2 = req.body.accountId
+	const confirmed = 0
 
-	const query = "INSERT INTO Friends (account1, account2, confirmed) VALUES (?,?,0)"
+	const query = "INSERT INTO Friends (account1, account2, confirmed) VALUES (?,?,?)"
 	const values = [account1, account2, confirmed]
 
 	db.run(query, values, function(error){
@@ -305,6 +305,25 @@ app.post("/friends/:username", function(req, res){
 			res.status(422).end()
 		} else {
 			res.setHeader("Location", "/friends")
+			res.status(201).end()
+		}
+	})
+})
+
+//Join friend
+
+app.post("/joinFriend/", function(req, res){
+	const studyId = req.body.studyId
+	const accountId = req.body.accountId
+
+	const query = "INSERT INTO joinF (studyId, accountId) VALUES (?,?)"
+	const values = [studyId, accountId]
+
+	db.run(query, values, function(error){
+		if(error){
+			res.status(422).end()
+		} else {
+			res.setHeader("Location", "/joinFriend")
 			res.status(201).end()
 		}
 	})
