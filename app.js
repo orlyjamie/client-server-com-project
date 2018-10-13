@@ -304,6 +304,24 @@ app.delete("/studyStatus/:studyId", function(request, response){
 	})
 })
 
+//Delete friendship
+
+app.delete("/friends/:id", function(req, res){
+	const id = parseInt(req.params.id)
+	db.run("DELETE FROM friends WHERE id = ?", [id], function(error){
+		if(error){
+			res.status(500).end()
+		}else {
+			const numberOfDeletetRows = this.changes
+			if(numberOfDeletetRows == 0){
+				response.status(404).end()
+			}else{
+				response.status(204).end()
+			}
+		}
+	})
+})
+
 //--------- PUT REQUESTS-----------//
 
 //Delete account
