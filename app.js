@@ -82,35 +82,52 @@ function validateaccounts(accounts){
 
 //--------- GET REQUESTS-----------//
 
-//Get all studyStatus
-
-app.get("/studyStatus", function(req, res){
-	const query = "SELECT * FROM studyStatus"
-    db.all(query, function(errors, studyStatus){
-        if(errors){
-            res.status(500).end()
-            }else{
-            res.status(200).json(studyStatus)
-        }
-    })
+//Get all studyStatus from friends
+app.get("/studyStatus/:account", function(req, res){
+	const account = parseInt(req.params.account)
+	const query = "SELECT account1, account2 FROM friends WHERE confirmed = 1"
+    db.all(query, function(errors, friends){
+			const friendIds = []
+			console.log(friends)
+			for(let i = 0; i < friends.length; i++){
+				if(friends[i].account1 == account || friends[i].account2 == account){
+					friendIds.push(Object.values(friends[i]))	
+				}
+			}	
+			if(errors){
+				res.status(500).end()
+			}else if(friendIds.length > 0) {
+				console.log(friendIds)
+				res.status(200).json(friendIds)	
+			}	else {
+				res.status(404).end()
+			}
+		})
 })
 
 //Get all friends
-
-
-app.get("/friends", function(req, res){
-    const query = "SELECT account2 FROM friends WHERE confirmed == 1"
+app.get("/friends/:account", function(req, res){
+	const account = parseInt(req.params.account)
+	const query = "SELECT account1, account2 FROM friends WHERE confirmed = 1"
     db.all(query, function(errors, friends){
-        if(errors){
-			res.status(500).end()
-        }else{
-			res.status(200).json(friends)
-        }
+			const friendships = []
+			for(let i = 0; i < friends.length; i++){
+				if(friends[i].account1 == account || friends[i].account2 == account){
+					friendships.push(friends[i])	
+				}
+			}	
+			if(errors){
+				res.status(500).end()
+			}else if(friendships.length > 0) {
+				res.status(200).json(friendships)
+			}	else {
+				res.status(404).end()
+			}
     })
 }) 
 	
 //Get specific studyStatus
-
+/*
 app.get('/studyStatus/:studyId', function(req, res){
 	const studyId = parseInt(req.params.studyId)
 	db.get("SELECT * FROM studyStatus WHERE studyId = ?", [studyId], function(error, studyStatus){
@@ -122,7 +139,7 @@ app.get('/studyStatus/:studyId', function(req, res){
             res.status(200).json(studyStatus)
 		}
 	})
-})
+}) */
 
 //Get specific account
 
@@ -416,4 +433,4 @@ app.patch("/friends/:friendId", function(req, res){
 	})
 })
 
-app.listen(6000)
+app.listen(8080)
