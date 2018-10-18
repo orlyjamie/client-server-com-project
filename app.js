@@ -422,8 +422,9 @@ app.put("/accounts/:id", function(req, res){
 //Confirm friendship
 
 app.patch("/friends/:friendId", function(req, res){
+	const confirmed = req.body.confirmed
 	const friendId = parseInt(req.params.friendId)
-	db.run("UPDATE friends SET confirmed = 1 WHERE friendId = ? ", [friendId], function(error){
+	db.run("UPDATE friends SET confirmed = ? WHERE friendId = ? ", [friendId], function(error){
 		if(error){
 			res.status(422).end()
 		}else{
