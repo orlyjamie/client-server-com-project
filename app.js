@@ -86,7 +86,7 @@ function validateaccounts(accounts){
 
 app.get("/:account/studyStatus/", function(req, res){
 	const account = req.params.account
-	const query = "SELECT * FROM studyStatus WHERE accountId IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 1) OR accountId IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 AND confirmed = 1)"
+	const query = "SELECT * FROM studyStatus WHERE accountId = '"+ account +"' OR accountId IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 1) OR accountId IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 AND confirmed = 1)"
 		db.all(query, function(errors, status){
 		 if(errors){
 				res.status(500).end()
@@ -105,7 +105,7 @@ app.get("/:account/studyStatus/:id", function(req, res){
 	const query = "SELECT * FROM studyStatus WHERE studyId = ? AND (accountId IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 1) OR accountId IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 AND confirmed = 1))"
 		db.all(query, [id], function(errors, status){
 		 if(errors){
-				console.log(errors.message)
+				res.status(500).end()
 			} else if(status.length < 1){
 				res.status(404).end()
 			}
@@ -284,7 +284,7 @@ app.post("/studyStatus", function(req, res){
 
 //Add friend
 
-app.post("/friends/:account", function(req, res){
+app.post("/:account/friends/", function(req, res){
 	const friendId = req.body.friendId
 	const account1 = req.params.account
 	const account2 = req.body.accountId
@@ -410,7 +410,6 @@ app.put("/accounts/:id", function(req, res){
 	db.run(query, values, function(error){
 		if(error){
 			res.status(500).end()
-			console.log(error.message)
 		}else{
 			res.status(204).end()
 		}
@@ -424,7 +423,7 @@ app.put("/accounts/:id", function(req, res){
 app.patch("/:account/friends/:friendId", function(req, res){
 	const confirmed = req.body.confirmed
 	const friendId = parseInt(req.params.friendId)
-	db.run("UPDATE friends SET confirmed = ? WHERE friendId = ? ", [friendId], function(error){
+	db.run("UPDATE friends SET confirmed = '"+ confirmed +"' WHERE friendId = ? ", [friendId], function(error){
 		if(error){
 			res.status(422).end()
 		}else{
@@ -433,4 +432,4 @@ app.patch("/:account/friends/:friendId", function(req, res){
 	})
 })
 
-app.listen(8080)
+app.listen(6000)
