@@ -18,9 +18,9 @@ db.run("PRAGMA foreign_keys = ON")
 //Create the tables
 db.run(`
   CREATE TABLE IF NOT EXISTS accounts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE,
-        password TEXT
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT UNIQUE,
+      password TEXT
 	)
 `)
 
@@ -39,7 +39,7 @@ db.run(`
   CREATE TABLE IF NOT EXISTS friends (
 		friendId INTEGER PRIMARY KEY AUTOINCREMENT,
 		account1 INTEGER,
-        account2 INTEGER,
+    account2 INTEGER,
 		confirmed INTEGER,
 		FOREIGN KEY(\`account1\`) REFERENCES \`accounts\`(\`id\`) ON DELETE CASCADE,
 		FOREIGN KEY(\`account2\`) REFERENCES \`accounts\`(\`id\`) ON DELETE CASCADE
@@ -83,77 +83,80 @@ function validateaccounts(accounts){
 //--------- GET REQUESTS-----------//
 
 //Get all studyStatus from friends
-app.get("/studyStatus/:account", function(req, res){
-	const account = parseInt(req.params.account)
-	const query = "SELECT account1, account2 FROM friends WHERE confirmed = 1"
-    db.all(query, function(errors, friends){
-			const friendIds = []
-			console.log(friends)
-			for(let i = 0; i < friends.length; i++){
-				if(friends[i].account1 == account || friends[i].account2 == account){
-					friendIds.push(Object.values(friends[i]))	
-				}
-			}	
-			if(errors){
+
+app.get("/:account/studyStatus/", function(req, res){
+	const account = req.params.account
+	const query = "SELECT * FROM studyStatus WHERE accountId IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 1) OR accountId IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 AND confirmed = 1)"
+		db.all(query, function(errors, status){
+		 if(errors){
 				res.status(500).end()
-			}else if(friendIds.length > 0) {
-				console.log(friendIds)
-				res.status(200).json(friendIds)	
-			}	else {
+			}else if(status.length < 1){
 				res.status(404).end()
+			}else{
+				res.status(200).json(status)
 			}
 		})
 })
 
-//Get all friends
-app.get("/friends/:account", function(req, res){
-	const account = parseInt(req.params.account)
-	const query = "SELECT account1, account2 FROM friends WHERE confirmed = 1"
-    db.all(query, function(errors, friends){
-			const friendships = []
-			for(let i = 0; i < friends.length; i++){
-				if(friends[i].account1 == account || friends[i].account2 == account){
-					friendships.push(friends[i])	
-				}
-			}	
-			if(errors){
-				res.status(500).end()
-			}else if(friendships.length > 0) {
-				res.status(200).json(friendships)
-			}	else {
+//Get specific studyStatus
+app.get("/:account/studyStatus/:id", function(req, res){
+	const account = req.params.account
+	const id = req.params.id
+	const query = "SELECT * FROM studyStatus WHERE studyId = ? AND (accountId IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 1) OR accountId IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 AND confirmed = 1))"
+		db.all(query, [id], function(errors, status){
+		 if(errors){
+				console.log(errors.message)
+			} else if(status.length < 1){
 				res.status(404).end()
 			}
-    })
-}) 
-	
-//Get specific studyStatus
-/*
-app.get('/studyStatus/:studyId', function(req, res){
-	const studyId = parseInt(req.params.studyId)
-	db.get("SELECT * FROM studyStatus WHERE studyId = ?", [studyId], function(error, studyStatus){
-		if(error){
-            res.status(500).end()
-        }else if(!studyStatus){
-            res.status(404).end()
-        }else{
-            res.status(200).json(studyStatus)
-		}
-	})
-}) */
+			else{
+				res.status(200).json(status)
+			}
+		})
+})
 
-//Get specific account
+//Get all confirmed friends
+app.get("/:account/friends/", function(req, res){
+	const account = req.params.account
+	const query = "SELECT id, username FROM accounts WHERE id IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 1) OR id IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 and confirmed = 1)"
+		db.all(query, function(errors, friends){
+		 if(errors){
+				res.status(500).end()
+			}else if(friends.length < 1){
+				res.status(404).end()
+			}else{
+				res.status(200).json(friends)
+			}
+		})
+})
 
+//Get all friend requests (unconfirmed)
+app.get("/:account/friend-requests/", function(req, res){
+	const account = req.params.account
+	const query = "SELECT id, username FROM accounts WHERE id IN (SELECT account1 FROM friends WHERE ' " + account + " ' == account2 AND confirmed = 0) OR id IN (SELECT account2 FROM friends WHERE ' " + account + " ' == account1 and confirmed = 0)"
+		db.all(query, function(errors, friends){
+		 if(errors){
+				res.status(500).end()
+			}else if(friends.length < 1){
+				res.status(404).end()
+			}else{
+				res.status(200).json(friends)
+			}
+		})
+})
+
+//Get specific user
 app.get('/accounts/:username', function(req, res){
-    const username = req.params.username
-    db.get("SELECT id, username FROM accounts WHERE username = ?", [username], function(error, accounts){
-        if(error){
-            res.status(500).end()
-        }else if(!accounts){
-            res.status(404).end()
-        }else{
-            res.status(200).json(accounts)
-        }
-    })
+  const username = req.params.username
+  db.get("SELECT id, username FROM accounts WHERE username = ?", [username], function(error, accounts){
+    if(error){
+      res.status(500).end()
+    }else if(accounts.length < 1){
+      res.status(404).end()
+    }else{
+      res.status(200).json(accounts)
+  	}
+  })
 })
 
 //--------- POST REQUESTS-----------//
@@ -195,7 +198,6 @@ app.post("/accounts", function(req, res){
 })
 
 //Sign in
-var currentUser
 
 app.post("/tokens", function(req, res){
 
@@ -218,17 +220,14 @@ app.post("/tokens", function(req, res){
 			res.status(400).json({error: "invalid_client"})
 		}else{
 			if(bcrypt.compareSync(password, accounts.password)){
-
 				const accessToken = jwt.sign({accountId: accounts.id}, jwtSecret)
 				const idToken = jwt.sign({sub: accounts.id, preferred_username: accounts.username}, jwtSecret)
-				currentUser = accounts.id
 
 				res.status(200).json({
 					access_token: accessToken,
 					token_type: "Bearer",
 					id_token: idToken
 				})
-
 			}else{
 				res.status(400).json({error: "invalid_request"})
 			}
@@ -260,7 +259,7 @@ app.post("/studyStatus", function(req, res){
 	if(tokenAccountId != accountId){
 		res.status(401).end()
 		return
-    }
+  }
 
 	const query = `
 		INSERT INTO studyStatus (studyId, accountId, message, location, time)
@@ -285,9 +284,9 @@ app.post("/studyStatus", function(req, res){
 
 //Add friend
 
-app.post("/friends", function(req, res){
+app.post("/friends/:account", function(req, res){
 	const friendId = req.body.friendId
-	const account1 = currentUser
+	const account1 = req.params.account
 	const account2 = req.body.accountId
 	const confirmed = 0
 
